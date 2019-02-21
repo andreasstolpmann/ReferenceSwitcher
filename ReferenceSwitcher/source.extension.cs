@@ -9,7 +9,7 @@ namespace ReferenceSwitcher
     {
         public const string Id = "7255b31e-0997-4b88-9498-93fb5606e249";
         public const string Name = "Reference Switcher";
-        public const string Description = @"Empty VSIX Project.";
+        public const string Description = @"The easiest way to switch from ProjectReferences to ProjectReferences.";
         public const string Language = "en-US";
         public const string Version = "1.0";
         public const string Author = "Andreas Stolpmann";

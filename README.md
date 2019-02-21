@@ -9,24 +9,17 @@ or get the [CI build](http://vsixgallery.com/extension/7255b31e-0997-4b88-9498-9
 
 ---------------------------------------
 
-Empty VSIX Project.
+Adds an item to the TOOLS menu to allow you to switch from PackageReferences to ProjectReferences. ProjectReferences are also added to the solution file.
+
+When executing the command a OpenFileDialog will appear and ask for a json file containing the names of PackageReferences to be replaced and the paths of the corresponding csproj file.
+```
+{
+  "ClassLibrary1": "C:\\Development\\ClassLibrary1\\ClassLibrary1\\ClassLibrary1.csproj",
+}
+```
+
 
 See the [change log](CHANGELOG.md) for changes and road map.
-
-## Features
-
-- Feature 1
-- Feature 2
-  - Sub feature
-
-### Feature 1
-Describe feature 1. Add screenshots/code samples etc.
-
-### Feature 2
-Describe feature 2. Add screenshots/code samples etc.
-
-#### Sub feature
-Describe sub feature. Add screenshots/code samples etc.
 
 ## Contribute
 Check out the [contribution guidelines](CONTRIBUTING.md)

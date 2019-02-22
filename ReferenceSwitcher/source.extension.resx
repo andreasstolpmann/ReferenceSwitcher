@@ -121,6 +121,6 @@
     <value>Reference Switcher</value>
   </data>
   <data name="112" xml:space="preserve">
-    <value>The easiest way to switch from ProjectReferences to ProjectReferences.</value>
+    <value>The easiest way to switch from PackageReferences to ProjectReferences.</value>
   </data>
 </root>

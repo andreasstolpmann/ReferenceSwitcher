@@ -55,23 +55,14 @@ namespace ReferenceSwitcher
             if (!(await AsyncPackage.GetServiceAsync(typeof(SVsSolution)) is IVsSolution solution))
                 return;
 
-            var dialog = new OpenFileDialog
-            {
-                InitialDirectory = Path.GetDirectoryName(Dte.Solution.FileName),
-                Filter = "Json Files (*.json)|*.json"
-            };
-            
-            if (dialog.ShowDialog() != DialogResult.OK)
+            if (!ReadConfig(out var config))
                 return;
-
-            var text = File.ReadAllText(dialog.FileName);
-            var config = JsonConvert.DeserializeObject<Dictionary<string, string>>(text);
 
             var projects = Dte.Solution.Projects.OfType<Project>().ToList();
             var toBeAddedToSolution = new HashSet<(string projectName, string projectReference)>();
             foreach (var project in projects)
             {
-                await HandleProjectAsync(solution, project, config, toBeAddedToSolution);
+                await HandleProjectAsync(project, config, toBeAddedToSolution);
             }
 
             foreach (var (projectName, projectReference) in toBeAddedToSolution.Where(x => projects.All(y => y.FullName != x.projectReference)))
@@ -80,8 +71,36 @@ namespace ReferenceSwitcher
             }
         }
 
-        private async Task HandleProjectAsync(IVsSolution solution,
-                                              Project project,
+        private bool ReadConfig(out Dictionary<string, string> config)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            config = null;
+
+            var dialog = new OpenFileDialog
+            {
+                InitialDirectory = Path.GetDirectoryName(Dte.Solution.FileName),
+                Filter = "Json Files (*.json)|*.json"
+            };
+
+            if (dialog.ShowDialog() != DialogResult.OK)
+                return false;
+
+            try
+            {
+                var text = File.ReadAllText(dialog.FileName);
+                config = JsonConvert.DeserializeObject<Dictionary<string, string>>(text);
+                return true;
+            }
+            catch
+            {
+                MessageBox.Show($"Could not read file {dialog.FileName}!",
+                    "Fail", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        private async Task HandleProjectAsync(Project project,
                                               Dictionary<string, string> config,
                                               HashSet<(string projectName, string projectReference)> toBeAddedToSolution)
         {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -71,14 +72,13 @@ namespace ReferenceSwitcher.Commands
             }
         }
 
+        [SuppressMessage("ReSharper", "SuspiciousTypeConversion.Global")]
         private async Task HandleProjectAsync(Project project,
                                               IList<ConfigItem> config,
                                               ISet<ConfigItem> toBeAddedToSolution)
         {
             IReferenceService referenceService;
-
-            // ReSharper disable once SuspiciousTypeConversion.Global
-            if (project is IVsBrowseObjectContext browseObjectContext)
+            if (project is IVsBrowseObjectContext)
                 referenceService = new ReferenceService();
             else
                 referenceService = new LegacyReferenceService();

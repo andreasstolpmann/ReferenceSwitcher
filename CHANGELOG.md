@@ -2,6 +2,7 @@
 
 - [ ] Switch back to PackageReferences
 - [ ] Neat UI to configure the ProjectReferences.
+- [ ] Add transitive ProjectReferences to sln.
 
 Features that have a checkmark are complete and available for
 download in the

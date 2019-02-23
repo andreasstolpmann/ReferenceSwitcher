@@ -3,18 +3,18 @@ using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.ProjectSystem;
 using Microsoft.VisualStudio.ProjectSystem.Properties;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json;
 using Task = System.Threading.Tasks.Task;
 
-namespace ReferenceSwitcher
+namespace ReferenceSwitcher.Commands
 {
     internal sealed class Command
     {
@@ -59,73 +59,33 @@ namespace ReferenceSwitcher
                 return;
 
             var projects = Dte.Solution.Projects.OfType<Project>().ToList();
-            var toBeAddedToSolution = new HashSet<(string projectName, string projectReference)>();
+            var toBeAddedToSolution = new HashSet<ConfigItem>();
             foreach (var project in projects)
             {
                 await HandleProjectAsync(project, config, toBeAddedToSolution);
             }
 
-            foreach (var (projectName, projectReference) in toBeAddedToSolution.Where(x => projects.All(y => y.FullName != x.projectReference)))
+            foreach (var item in toBeAddedToSolution.Where(x => projects.All(y => y.FullName != x.ProjectReferencePath)))
             {
-                AddProjectToSolution(solution, projectName, projectReference);
-            }
-        }
-
-        private bool ReadConfig(out Dictionary<string, string> config)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            config = null;
-
-            var dialog = new OpenFileDialog
-            {
-                InitialDirectory = Path.GetDirectoryName(Dte.Solution.FileName),
-                Filter = "Json Files (*.json)|*.json"
-            };
-
-            if (dialog.ShowDialog() != DialogResult.OK)
-                return false;
-
-            try
-            {
-                var text = File.ReadAllText(dialog.FileName);
-                config = JsonConvert.DeserializeObject<Dictionary<string, string>>(text);
-                return true;
-            }
-            catch
-            {
-                MessageBox.Show($"Could not read file {dialog.FileName}!",
-                    "Fail", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
+                AddProjectToSolution(solution, item.PackageReferenceName, item.ProjectReferencePath);
             }
         }
 
         private async Task HandleProjectAsync(Project project,
-                                              Dictionary<string, string> config,
-                                              HashSet<(string projectName, string projectReference)> toBeAddedToSolution)
+                                              IList<ConfigItem> config,
+                                              ISet<ConfigItem> toBeAddedToSolution)
         {
+            IReferenceService referenceService;
+
             // ReSharper disable once SuspiciousTypeConversion.Global
-            if (!(project is IVsBrowseObjectContext browseObjectContext))
-                return;
+            if (project is IVsBrowseObjectContext browseObjectContext)
+                referenceService = new ReferenceService();
+            else
+                referenceService = new LegacyReferenceService();
 
-            var configuredProject = await browseObjectContext.UnconfiguredProject.GetSuggestedConfiguredProjectAsync();
+            var result = await referenceService.GetPackageReferenceNamesAsync(project, config);
+            toBeAddedToSolution.AddRange(result);
 
-            //var resolvedReferences = await configuredProject.Services.PackageReferences.GetResolvedReferencesAsync();
-            var unResolvedReferences = await configuredProject.Services.PackageReferences.GetUnresolvedReferencesAsync();
-
-            var references = unResolvedReferences.Select(x => x.EvaluatedInclude);
-
-            foreach (var packageReference in references)
-            {
-                if (!config.ContainsKey(packageReference))
-                    continue;
-                var projectReference = config[packageReference];
-
-                await configuredProject.Services.PackageReferences.RemoveAsync(packageReference);
-                await configuredProject.Services.ProjectReferences.AddAsync(projectReference);
-
-                toBeAddedToSolution.Add((packageReference, projectReference));
-            }
         }
 
         private void AddProjectToSolution(IVsSolution solution, string projectName, string projectReference)
@@ -141,6 +101,39 @@ namespace ReferenceSwitcher
             {
                 MessageBox.Show($"Failed to add project {projectReference} to solution. (CreateProject)",
                     "Fail", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private bool ReadConfig(out IList<ConfigItem> config)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            config = new List<ConfigItem>();
+
+            var dialog = new OpenFileDialog
+            {
+                InitialDirectory = Path.GetDirectoryName(Dte.Solution.FileName),
+                Filter = "Json Files (*.json)|*.json"
+            };
+
+            if (dialog.ShowDialog() != DialogResult.OK)
+                return false;
+
+            try
+            {
+                var text = File.ReadAllText(dialog.FileName);
+                var configDict = JsonConvert.DeserializeObject<Dictionary<string, string>>(text);
+                foreach (var pair in configDict)
+                {
+                    config.Add(new ConfigItem(pair.Key, pair.Value));
+                }
+                return true;
+            }
+            catch
+            {
+                MessageBox.Show($"Could not read file {dialog.FileName}!",
+                    "Fail", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
         }
 

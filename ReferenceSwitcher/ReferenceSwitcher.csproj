@@ -47,7 +47,11 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Command.cs" />
+    <Compile Include="Commands\Command.cs" />
+    <Compile Include="Commands\ConfigItem.cs" />
+    <Compile Include="Commands\IReferenceService.cs" />
+    <Compile Include="Commands\LegacyReferenceService.cs" />
+    <Compile Include="Commands\ReferenceService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="source.extension.cs">
       <DependentUpon>source.extension.vsixmanifest</DependentUpon>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using EnvDTE;
 using EnvDTE80;
@@ -66,14 +67,23 @@ namespace ReferenceSwitcher
             var text = File.ReadAllText(dialog.FileName);
             var config = JsonConvert.DeserializeObject<Dictionary<string, string>>(text);
 
-            var projects = Dte.Solution.Projects.OfType<Project>();
+            var projects = Dte.Solution.Projects.OfType<Project>().ToList();
+            var toBeAddedToSolution = new HashSet<(string projectName, string projectReference)>();
             foreach (var project in projects)
             {
-                await HandleProjectAsync(solution, project, config);
+                await HandleProjectAsync(solution, project, config, toBeAddedToSolution);
+            }
+
+            foreach (var (projectName, projectReference) in toBeAddedToSolution.Where(x => projects.All(y => y.FullName != x.projectReference)))
+            {
+                AddProjectToSolution(solution, projectName, projectReference);
             }
         }
 
-        private async Task HandleProjectAsync(IVsSolution solution, Project project, Dictionary<string, string> config)
+        private async Task HandleProjectAsync(IVsSolution solution,
+                                              Project project,
+                                              Dictionary<string, string> config,
+                                              HashSet<(string projectName, string projectReference)> toBeAddedToSolution)
         {
             // ReSharper disable once SuspiciousTypeConversion.Global
             if (!(project is IVsBrowseObjectContext browseObjectContext))
@@ -86,7 +96,6 @@ namespace ReferenceSwitcher
 
             var references = unResolvedReferences.Select(x => x.EvaluatedInclude);
 
-
             foreach (var packageReference in references)
             {
                 if (!config.ContainsKey(packageReference))
@@ -96,28 +105,25 @@ namespace ReferenceSwitcher
                 await configuredProject.Services.PackageReferences.RemoveAsync(packageReference);
                 await configuredProject.Services.ProjectReferences.AddAsync(projectReference);
 
-                await AddProjectToSolutionAsync(solution, packageReference, projectReference);
+                toBeAddedToSolution.Add((packageReference, projectReference));
             }
         }
 
-        private async Task AddProjectToSolutionAsync(IVsSolution solution, string projectName, string projectReference)
+        private void AddProjectToSolution(IVsSolution solution, string projectName, string projectReference)
         {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            ThreadHelper.ThrowIfNotOnUIThread();
 
             var projectType = Guid.Empty;
             var projectId = Guid.Empty;
-
             var result = solution.CreateProject(ref projectType, projectReference, projectReference, projectName,
                 (uint) (__VSCREATEPROJFLAGS.CPF_OPENFILE | __VSCREATEPROJFLAGS.CPF_SILENT), ref projectId, out _);
 
             if (result != VSConstants.S_OK)
             {
-                MessageBox.Show($"Failed to add project: {projectReference}",
+                MessageBox.Show($"Failed to add project {projectReference} to solution. (CreateProject)",
                     "Fail", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-
 
         private bool CheckSolutionState()
         {
@@ -137,9 +143,7 @@ namespace ReferenceSwitcher
                 return false;
             }
 
-#pragma warning disable VSTHRD010 // Invoke single-threaded types on Main thread
             if (Dte.Solution.Projects.OfType<Project>().Any(p => p.IsDirty))
-#pragma warning restore VSTHRD010 // Invoke single-threaded types on Main thread
             {
                 MessageBox.Show("Please save your projects first. \n" +
                                 "Select the project in the Solution Explorer and press Ctrl-S. ",

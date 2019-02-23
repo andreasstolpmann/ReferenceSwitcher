@@ -121,7 +121,7 @@
     <value>Reference Switcher</value>
   </data>
   <data name="112" xml:space="preserve">
-    <value>The easiest way to switch from PackageReferences to ProjectReferences.</value>
+    <value>Switch from PackageReferences to ProjectReferences to make it easier to test/debug/develop libraries.</value>
   </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="400" type="System.Resources.ResXFileRef, System.Windows.Forms">

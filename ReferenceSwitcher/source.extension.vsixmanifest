@@ -3,7 +3,7 @@
     <Metadata>
         <Identity Id="7255b31e-0997-4b88-9498-93fb5606e249" Version="1.0" Language="en-US" Publisher="Andreas Stolpmann" />
         <DisplayName>Reference Switcher</DisplayName>
-        <Description xml:space="preserve">The easiest way to switch from PackageReferences to ProjectReferences.</Description>
+        <Description xml:space="preserve">Switch from PackageReferences to ProjectReferences to make it easier to test/debug/develop libraries.</Description>
         <License>Resources\LICENSE</License>
         <Icon>Resources\Icon.png</Icon>
         <PreviewImage>Resources\Preview.png</PreviewImage>

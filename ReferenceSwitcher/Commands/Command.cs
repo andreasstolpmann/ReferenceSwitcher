@@ -77,6 +77,10 @@ namespace ReferenceSwitcher.Commands
                                               IList<ConfigItem> config,
                                               ISet<ConfigItem> toBeAddedToSolution)
         {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            if (string.IsNullOrWhiteSpace(project.FullName))
+                return;
+            
             IReferenceService referenceService;
             if (project is IVsBrowseObjectContext)
                 referenceService = new ReferenceService();
